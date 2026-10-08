@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>茶具展示</title>
+  <style>
+    body{margin:0;overflow:hidden;font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
+    canvas{display:block}
+
+    /* 左侧：茶壶选择 */
+    #modelUI{
+      position:fixed;left:20px;top:50%;transform:translateY(-50%);
+      display:flex;flex-direction:column;gap:10px;
+    }
+    #modelUI button{
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:10px;border:2px solid transparent;border-radius:12px;
+      background:rgba(255,255,255,.9);cursor:pointer;
+      box-shadow:0 4px 16px rgba(0,0,0,.1);transition:.18s;
+      width:84px;
+    }
+    #modelUI button:hover{transform:translateY(-2px)}
+    #modelUI button.active{border-color:#2b2b2b;background:#fff}
+    #modelUI button img{
+      width:64px;height:64px;object-fit:cover;border-radius:8px;
+      background:#f5f5f5;display:block;
+    }
+    #modelUI button span{font-size:12px;color:#333}
+    #modelUI button.active span{font-weight:600}
+
+    /* 底部：材质选择 */
+    #matUI{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      display:flex;gap:8px;
+    }
+    #matUI button{
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:10px;border:2px solid transparent;border-radius:12px;
+      background:rgba(255,255,255,.9);cursor:pointer;
+      box-shadow:0 4px 16px rgba(0,0,0,.1);transition:.18s;
+      width:84px;
+    }
+    #matUI button:hover{transform:translateY(-2px)}
+    #matUI button.active{border-color:#2b2b2b;background:#fff}
+    #matUI button img{
+      width:64px;height:64px;object-fit:cover;border-radius:8px;
+      background:#f5f5f5;display:block;
+    }
+    #matUI button span{font-size:12px;color:#333}
+    #matUI button.active span{font-weight:600}
+  </style>
+</head>
+<body>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<!-- 左侧：茶壶 -->
+<div id="modelUI">
+  <button data-model="0" class="active">
+    <img src="./teapot1.png" alt="茶壶1">
+    <span>茶壶 1</span>
+  </button>
+  <button data-model="1">
+    <img src="./teapot2.png" alt="茶壶2">
+    <span>茶壶 2</span>
+  </button>
+</div>
+
+<!-- 底部：材质 -->
+<div id="matUI">
+  <button data-mat="0" class="active">
+    <img src="./matA.png" alt="材质A">
+    <span>材质 A</span>
+  </button>
+  <button data-mat="1">
+    <img src="./matB.png" alt="材质B">
+    <span>材质 B</span>
+  </button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+
+/* ==================== 场景 ==================== */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf2f0ec);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 1.8, 4);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.8, 0);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = 1.5;
+controls.maxDistance = 10;
+
+/* ==================== 灯光 ==================== */
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+const light = new THREE.DirectionalLight(0xffffff, 3);
+light.position.set(4, 6, 5);
+scene.add(light);
+
+const light2 = new THREE.DirectionalLight(0xffffff, 1);
+light2.position.set(-4, 3, -4);
+scene.add(light2);
+
+/* ==================== 贴图 ==================== */
+const texLoader = new THREE.TextureLoader();
+function loadTex(url) {
+  const t = texLoader.load(url);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/* ==================== 材质 ==================== */
+const M = {
+  teapot1: [
+    new THREE.MeshStandardMaterial({ map: loadTex('./teapot1_A.jpg'), roughness: 0.5 }),
+    new THREE.MeshStandardMaterial({ map: loadTex('./teapot1_B.jpg'), roughness: 0.5 }),
+  ],
+  teapot2: [
+    new THREE.MeshStandardMaterial({ map: loadTex('./teapot2_A.jpg'), roughness: 0.5 }),
+    new THREE.MeshStandardMaterial({ map: loadTex('./teapot2_B.jpg'), roughness: 0.5 }),
+  ],
+};
+
+/* ==================== 状态 ==================== */
+const teapots = [null, null];
+let currentModel = 0;
+let currentMat   = 0;
+
+/* ==================== 套材质 ==================== */
+function applyMaterialTo(target, mat) {
+  if (!target) return;
+  target.traverse((o) => {
+    if (o.isMesh) o.material = mat;
+  });
+}
+
+/* ==================== 刷新显示 ==================== */
+function refresh() {
+  teapots.forEach((t, i) => {
+    if (t) t.visible = (i === currentModel);
+  });
+  const mat = M['teapot' + (currentModel + 1)][currentMat];
+  applyMaterialTo(teapots[currentModel], mat);
+
+  document.querySelectorAll('#modelUI button').forEach((b, i) => {
+    b.classList.toggle('active', i === currentModel);
+  });
+  document.querySelectorAll('#matUI button').forEach((b, i) => {
+    b.classList.toggle('active', i === currentMat);
+  });
+}
+
+/* ==================== 加载茶壶 ==================== */
+function loadTeapot(url, index) {
+  new OBJLoader().load(url, (obj) => {
+
+    obj.rotation.x = -Math.PI / 2;   // 扶正
+
+    const box0 = new THREE.Box3().setFromObject(obj);
+    const size0 = box0.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size0.x, size0.y, size0.z);
+    obj.scale.setScalar(2 / maxDim);
+
+    const box1 = new THREE.Box3().setFromObject(obj);
+    const center1 = box1.getCenter(new THREE.Vector3());
+    obj.position.x -= center1.x;
+    obj.position.z -= center1.z;
+    obj.position.y -= box1.min.y;
+
+    scene.add(obj);
+    teapots[index] = obj;
+    refresh();
+  }, undefined, (err) => {
+    console.error(url, '加载失败', err);
+  });
+}
+
+loadTeapot('./teapot1.obj', 0);
+loadTeapot('./teapot2.obj', 1);
+
+/* ==================== 按钮：切换茶壶 ==================== */
+document.querySelectorAll('#modelUI button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    currentModel = Number(btn.dataset.model);
+    refresh();
+  });
+});
+
+/* ==================== 按钮：切换材质 ==================== */
+document.querySelectorAll('#matUI button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    currentMat = Number(btn.dataset.mat);
+    refresh();
+  });
+});
+
+/* ==================== 渲染循环 ==================== */
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
