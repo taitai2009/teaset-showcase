@@ -1,300 +1,1106 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>小样</title>
-  <style>
-    :root{
-      --bg:#f5f2ec;
-      --ink:#2b2620;
-      --ink-2:#6b6259;
-      --gold:#b8935a;
-      --card:rgba(255,255,255,.72);
-      --shadow:0 8px 32px rgba(43,38,32,.10);
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;height:100%;overflow:hidden;
-      font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
-      color:var(--ink);background:var(--bg);}
-    canvas{display:block}
-
-    /* 左侧茶壶选择 */
-    #modelUI{
-      position:fixed;left:36px;top:50%;transform:translateY(-50%);
-      display:flex;flex-direction:column;gap:14px;
-      z-index:10;
-    }
-    .model-card{
-      position:relative;
-      display:flex;flex-direction:column;align-items:center;gap:8px;
-      padding:12px 10px;
-      border:0;border-radius:16px;cursor:pointer;
-      background:var(--card);
-      backdrop-filter:blur(16px);
-      -webkit-backdrop-filter:blur(16px);
-      box-shadow:var(--shadow);
-      transition:.3s cubic-bezier(.2,.8,.2,1);
-      text-align:center;
-      overflow:hidden;
-      width:96px;
-    }
-    .model-card::before{
-      content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
-      background:var(--gold);transform:scaleY(0);transform-origin:center;
-      transition:.3s;
-    }
-    .model-card:hover{transform:translateX(4px)}
-    .model-card.active::before{transform:scaleY(1)}
-    .model-card.active{
-      background:rgba(255,255,255,.92);
-      box-shadow:0 12px 40px rgba(43,38,32,.16);
-    }
-    .model-card img{
-      width:56px;height:56px;border-radius:12px;
-      object-fit:cover;background:#f0ece4;display:block;
-      transition:.3s;
-    }
-    .model-card.active img{transform:scale(1.05)}
-    .model-card .meta{display:flex;flex-direction:column;gap:4px;align-items:center}
-    .model-card .name{
-      font-size:13px;font-weight:600;color:var(--ink);letter-spacing:.08em;
-    }
-
-    /* 底部材质选择 */
-    #matUI{
-      position:fixed;bottom:36px;left:50%;transform:translateX(-50%);
-      display:flex;gap:12px;
-      padding:10px;
-      background:var(--card);
-      backdrop-filter:blur(16px);
-      -webkit-backdrop-filter:blur(16px);
-      border-radius:20px;
-      box-shadow:var(--shadow);
-      z-index:10;
-    }
-    .mat-card{
-      position:relative;
-      display:flex;flex-direction:column;align-items:center;gap:8px;
-      padding:10px 16px;
-      border:0;border-radius:14px;cursor:pointer;
-      background:transparent;
-      transition:.3s cubic-bezier(.2,.8,.2,1);
-    }
-    .mat-card:hover{background:rgba(184,147,90,.08)}
-    .mat-card img{
-      width:52px;height:52px;border-radius:12px;
-      object-fit:cover;background:#f0ece4;display:block;
-      border:2px solid transparent;
-      transition:.3s;
-    }
-    .mat-card.active img{
-      border-color:var(--gold);
-      box-shadow:0 0 0 4px rgba(184,147,90,.12);
-    }
-    .mat-card .label{
-      font-size:11px;color:var(--ink-2);letter-spacing:.15em;
-      transition:.3s;
-    }
-    .mat-card.active .label{color:var(--ink);font-weight:600}
-
-    /* 右下角提示 */
-    #hint{
-      position:fixed;right:36px;bottom:40px;
-      font-size:11px;color:var(--ink-2);letter-spacing:.15em;
-      opacity:.6;z-index:10;pointer-events:none;
-    }
-
-    @media (max-width:640px){
-      #modelUI{left:16px;gap:10px}
-      .model-card{padding:8px;border-radius:14px;width:76px}
-      .model-card img{width:44px;height:44px}
-      .model-card .name{font-size:12px}
-
-      #matUI{bottom:20px;gap:8px;padding:8px;border-radius:16px}
-      .mat-card{padding:8px 12px}
-      .mat-card img{width:44px;height:44px}
-      .mat-card .label{font-size:10px}
-
-      #hint{right:20px;bottom:auto;top:20px;font-size:10px}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>茶席组合</title>
+<style>
+:root{--bg:#f5f2ec;--ink:#2b2620;--ink-2:#6b6259;--gold:#b8935a;--card:rgba(255,255,255,.85);--shadow:0 8px 32px rgba(43,38,32,.12);--gui-width:280px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+canvas{display:block}
+body.layout-mobile-landscape{--gui-width:220px}
+body.layout-mobile-portrait{--gui-width:260px}
+#catalog{background:var(--card);backdrop-filter:blur(20px);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;z-index:10;transition:transform .3s}
+#catalogHeader{padding:16px 18px 14px;border-bottom:1px solid rgba(43,38,32,.08);flex-shrink:0}
+#catalogTitle{font-size:15px;font-weight:600;letter-spacing:.1em;margin-bottom:10px}
+#breadcrumb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--ink-2);min-height:18px}
+.bc-item{cursor:pointer;padding:2px 6px;border-radius:6px;transition:.2s;white-space:nowrap}
+.bc-item:hover{background:rgba(184,147,90,.12);color:var(--ink)}
+.bc-item.current{color:var(--gold);font-weight:600;cursor:default}
+.bc-sep{color:rgba(43,38,32,.3);font-size:10px}
+#backBtn{margin-top:10px;padding:8px 14px;border:0;border-radius:10px;background:rgba(43,38,32,.06);color:var(--ink);font-size:12px;cursor:pointer;display:none;align-items:center;gap:6px}
+#backBtn.show{display:inline-flex}
+#catalogBody{flex:1;overflow-y:auto;padding:14px}
+.item{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.5);border:1px solid rgba(43,38,32,.06);position:relative}
+.item:hover{background:#fff;border-color:rgba(184,147,90,.4);transform:translateX(3px)}
+.item-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(184,147,90,.12);color:var(--gold);font-size:16px;flex-shrink:0}
+.item-icon.leaf{background:rgba(43,38,32,.06);color:var(--ink-2)}
+.item-icon.has-model{background:rgba(76,175,80,.15);color:#4caf50}
+.item-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#4caf50}
+.item-text{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:500;line-height:1.35}
+.item-count{font-size:10px;color:var(--ink-2);margin-top:2px}
+.item-arrow{font-size:14px;color:rgba(43,38,32,.25);flex-shrink:0}
+.item-plus{font-size:18px;color:var(--gold);flex-shrink:0;opacity:.7}
+#drawerHandle{display:none;position:relative;height:62px;flex-shrink:0;align-items:center;justify-content:space-between;padding:0 18px;cursor:pointer;border-bottom:1px solid rgba(43,38,32,.06)}
+#drawerHandle .handle-bar{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:40px;height:4px;border-radius:2px;background:rgba(43,38,32,.18)}
+#drawerHandle .handle-text{font-size:14px;font-weight:600}
+#drawerHandle .handle-icon{font-size:14px;color:var(--ink-2);transition:transform .3s}
+body.layout-desktop #catalog{position:fixed;left:20px;top:20px;bottom:20px;width:300px;border-radius:18px}
+body.layout-tablet #catalog{position:fixed;left:12px;top:12px;bottom:12px;width:220px;border-radius:14px}
+body.layout-tablet .item{padding:10px 12px;gap:8px}
+body.layout-tablet .item-count{display:none}
+body.layout-mobile-portrait #catalog{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;max-height:60vh;border-radius:18px 18px 0 0;transform:translateY(calc(100% - 62px))}
+body.layout-mobile-portrait #catalog.open{transform:translateY(0)}
+body.layout-mobile-portrait #drawerHandle{display:flex}
+body.layout-mobile-portrait #catalogTitle{display:none}
+body.layout-mobile-landscape #catalog{position:fixed;left:8px;top:8px;bottom:8px;width:200px;border-radius:12px}
+body.layout-mobile-landscape .item{padding:8px 10px;gap:6px}
+body.layout-mobile-landscape .item-count{display:none}
+#guiToggle{position:fixed;right:0;top:50%;transform:translateY(-50%);width:38px;padding:16px 6px;border:0;border-radius:12px 0 0 12px;background:rgba(43,38,32,.82);color:#fff;font-size:12px;letter-spacing:.15em;writing-mode:vertical-rl;cursor:pointer;z-index:51;transition:.3s}
+#guiToggle.open{transform:translateY(-50%) translateX(calc(-1 * var(--gui-width)));background:rgba(184,147,90,.95)}
+.lil-gui.root{position:fixed !important;right:0 !important;top:70px !important;bottom:70px !important;width:var(--gui-width) !important;max-height:none !important;border-radius:14px 0 0 14px !important;overflow-y:auto !important;transition:transform .3s !important;z-index:50 !important;transform:translateX(100%)}
+.lil-gui.root > .title > .close-button{display:none !important}
+#historyBtns{position:fixed;right:16px;top:16px;display:flex;flex-direction:column;gap:8px;z-index:100}
+.hist-btn{width:46px;height:46px;display:flex;align-items:center;justify-content:center;border:0;border-radius:13px;cursor:pointer;background:rgba(43,38,32,.82);color:#fff;font-size:20px}
+.hist-btn:disabled{opacity:.3}
+.hist-count{font-size:10px;text-align:center;color:#fff;background:rgba(43,38,32,.6);border-radius:8px;padding:3px 0}
+#bottomBar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:10}
+#clearBtn{padding:12px 28px;border:0;border-radius:14px;cursor:pointer;background:var(--ink);color:#fff;font-size:13px;letter-spacing:.15em}
+body.layout-mobile-portrait #bottomBar{bottom:78px}
+#diagBtn{position:fixed;right:16px;bottom:16px;width:44px;height:44px;border:0;border-radius:50%;background:rgba(43,38,32,.82);color:#fff;font-size:18px;cursor:pointer;z-index:100}
+body.layout-mobile-portrait #diagBtn{bottom:80px}
+#info{position:fixed;left:50%;top:18px;transform:translateX(-50%);padding:7px 16px;border-radius:99px;background:rgba(43,38,32,.85);color:#fff;font-size:11px;z-index:20;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#info.ok{background:rgba(52,120,80,.9)}
+#info.err{background:rgba(180,60,60,.9)}
+#toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.85);color:#fff;padding:10px 22px;border-radius:24px;font-size:12px;z-index:1000;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#rotateHint{position:fixed;left:50%;top:12px;transform:translateX(-50%);padding:8px 18px;border-radius:24px;background:rgba(43,38,32,.85);color:#fff;font-size:11px;z-index:100;opacity:0;transition:.5s;pointer-events:none;display:none}
+body.layout-mobile-portrait #rotateHint{display:flex}
+#rotateHint.show{opacity:1}
+.lil-gui{--background-color:rgba(255,255,255,.9);--text-color:#2b2620;--title-background-color:rgba(255,255,255,.95);--title-text-color:#2b2620;--widget-color:rgba(43,38,32,.08);--number-color:#b8935a;--string-color:#6b6259;--font-family:"PingFang SC","Microsoft YaHei",sans-serif;--font-size:12px;--title-height:34px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(43,38,32,.14);border:1px solid rgba(255,255,255,.6);border-right:0}
+.lil-gui > .title{background:rgba(255,255,255,.95) !important;color:#2b2620 !important;border-bottom:1px solid rgba(43,38,32,.08)}
+.lil-gui input[type="number"]{color:#b8935a;background:transparent}
+.lil-gui .slider .fill{background:#b8935a}
+.lil-gui button{background:rgba(43,38,32,.06);color:#2b2620}
+.lil-gui .controller.boolean .widget input:checked + .toggle{background:#b8935a !important}
+</style>
 </head>
-<body>
+<body class="layout-desktop">
+
+<div id="info">加载中…</div>
+<div id="rotateHint">⟳ 横屏观看效果更好</div>
+
+<div id="catalog">
+  <div id="drawerHandle">
+    <div class="handle-bar"></div>
+    <span class="handle-text">茶席器具</span>
+    <span class="handle-icon">▲</span>
+  </div>
+  <div id="catalogHeader">
+    <div id="catalogTitle">茶席器具</div>
+    <div id="breadcrumb"></div>
+    <button id="backBtn">← 返回上级</button>
+  </div>
+  <div id="catalogBody"></div>
+</div>
+
+<button id="guiToggle">调 节</button>
+<div id="historyBtns">
+  <button class="hist-btn" id="undoBtn" disabled>↶</button>
+  <div class="hist-count" id="undoCount">0</div>
+  <button class="hist-btn" id="redoBtn" disabled>↷</button>
+  <div class="hist-count" id="redoCount">0</div>
+</div>
+<div id="bottomBar"><button id="clearBtn">清空桌面</button></div>
+<button id="diagBtn">🔍</button>
+<div id="toast"></div>
 
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
-  }
-}
+{ "imports": {
+  "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/",
+  "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.js"
+}}
 </script>
-
-<div id="modelUI">
-  <button class="model-card active" data-model="0">
-    <img src="./teapot1.png" alt="">
-    <div class="meta">
-      <div class="name">茶壶 · 一</div>
-    </div>
-  </button>
-  <button class="model-card" data-model="1">
-    <img src="./teapot2.png" alt="">
-    <div class="meta">
-      <div class="name">茶壶 · 二</div>
-    </div>
-  </button>
-</div>
-
-<div id="matUI">
-  <button class="mat-card active" data-mat="0">
-    <img src="./matA.png" alt="">
-    <span class="label">材质 A</span>
-  </button>
-  <button class="mat-card" data-mat="1">
-    <img src="./matB.png" alt="">
-    <span class="label">材质 B</span>
-  </button>
-</div>
-
-<div id="hint">拖动旋转 · 滚轮缩放</div>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import GUI from 'lil-gui';
 
-/* ==================== 场景 ==================== */
+const TEAPOT_DEFS = {
+  'zishahu':      { name:'小型壶',   file:'./zishahu.glb',      fallbackColor:0x6e3b2a, radiusScale:0.55, scaleMin:0.5, scaleMax:2.0 },
+  'qinghuacihu':  { name:'青花瓷壶', file:'./qinghuacihu.glb',  fallbackColor:0xdfe8ef, radiusScale:0.55, scaleMin:0.5, scaleMax:2.0 },
+  'putonggaiwan': { name:'普通盖碗', file:'./putonggaiwan.glb', fallbackColor:0xfafaf7, radiusScale:0.65, scaleMin:0.5, scaleMax:2.0 }
+};
+
+const CATALOG = [
+  { name:'冲泡器具', children:[
+    { name:'茶壶', children:[
+      { name:'紫砂茶壶', children:[
+        { name:'大型壶（300ml以上）', id:'zisha-large', color:0x6e3b2a },
+        { name:'中型壶（150-300ml）', id:'zisha-mid',   color:0x7d4a37 },
+        { name:'小型壶（150ml以下）', id:'zisha-small', model:'zishahu', color:0x6e3b2a }
+      ]},
+      { name:'瓷茶壶（青花、白瓷、彩瓷）', children:[
+        { name:'青花瓷壶', id:'qinghua', model:'qinghuacihu', color:0xdfe8ef },
+        { name:'白瓷壶',   id:'baici',   color:0xfafaf7 },
+        { name:'彩瓷壶',   id:'caici',   color:0xd4a574 }
+      ]},
+      { name:'玻璃茶壶', children:[
+        { name:'大型壶（300ml以上）', id:'glass-large', color:0xa8d0d8 },
+        { name:'中型壶（150-300ml）', id:'glass-mid',   color:0xb8dde3 }
+      ]}
+    ]},
+    { name:'盖碗', children:[
+      { name:'紫砂盖碗', children:[
+        { name:'紫砂盖碗', id:'gaiwan-zisha', color:0x6e3b2a }
+      ]},
+      { name:'瓷质盖碗', children:[
+        { name:'大型盖碗（200ml以上）', id:'gaiwan-large', color:0xfafaf7 },
+        { name:'普通盖碗（200ml以下）', id:'gaiwan-small', model:'putonggaiwan', color:0xf0f5f3 }
+      ]}
+    ]},
+    { name:'玻璃杯', children:[
+      { name:'直升杯', id:'glass-tall', color:0xa8d0d8 },
+      { name:'小型杯', id:'glass-small', color:0xb8dde3 }
+    ]},
+    { name:'异形冲泡器', children:[
+      { name:'绿茶冲泡器', id:'lvcha', color:0xe8e8e0 },
+      { name:'其他冲泡器', id:'other-brew', color:0xd4c8b8 }
+    ]}
+  ]},
+  { name:'品饮器具', children:[] },
+  { name:'辅助茶具', children:[] },
+  { name:'装饰艺术品', children:[] }
+];
+
+const CONFIG = {
+  background: 0xf5f2ec,
+  camera: { targetX:0, targetZ:0, targetH:0.85, angle:0, elevation:20, distance:2, fov:45 },
+  envIntensity: 1,
+  exposure: 1,
+  lights: { hemi:1, ambient:1, key:3, fill:1.5, rim:1 },
+  keyPos:  { x:-4, y:8, z:4 },
+  fillPos: { x: 4, y:4, z:5 },
+  rimPos:  { x: 0, y:5, z:-6 },
+  materialBoost: { enabled:true, envMapIntensity:1.5, addClearcoat:true, clearcoat:0.35, clearcoatRoughness:0.10 },
+  contactShadow: { enabled:true, radius:0.08, distanceExponent:1.0, thickness:0.5, scale:1.0, samples:16, distanceFallOff:1.0, screenSpaceRadius:false },
+  view: { contrast:1.15, brightness:-0.05 },
+  interaction: { rotateStep:Math.PI/12, scaleStep:0.1, globalRadiusScale:1.0, tableMargin:0.03 }
+};
+const HDR_CANDIDATES = ['./backlight.hdr','./chashi.hdr','./studio.hdr','./room.hdr'];
+
+function detectLayout() {
+  const w = innerWidth, h = innerHeight;
+  if (w >= 1024) return 'layout-desktop';
+  if (w >= 768) return 'layout-tablet';
+  if (h > w) return 'layout-mobile-portrait';
+  return 'layout-mobile-landscape';
+}
+function applyLayout() {
+  const m = detectLayout();
+  document.body.classList.remove('layout-desktop','layout-tablet','layout-mobile-portrait','layout-mobile-landscape');
+  document.body.classList.add(m);
+  return m;
+}
+let currentLayout = detectLayout();
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf5f2ec);
-
-const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0, 1.8, 4);
+scene.background = new THREE.Color(CONFIG.background);
+const camera = new THREE.PerspectiveCamera(CONFIG.camera.fov, innerWidth/innerHeight, 0.01, 10000);
+camera.position.set(0, 1.5, 3);
 
 const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = CONFIG.exposure;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.5, 0);
-controls.enableDamping = true;
-controls.dampingFactor = 0.08;
-controls.enablePan = false;
-controls.minDistance = 1.5;
-controls.maxDistance = 10;
-
-/* ==================== 灯光 ==================== */
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-
-const key = new THREE.DirectionalLight(0xffffff, 3);
-key.position.set(4, 6, 5);
-scene.add(key);
-
-const fill = new THREE.DirectionalLight(0xffffff, 1.2);
-fill.position.set(-4, 3, 4);
-scene.add(fill);
-
-const rim = new THREE.DirectionalLight(0xffffff, 1.5);
-rim.position.set(0, 4, -6);
-scene.add(rim);
-
-/* ==================== 贴图 ==================== */
-const texLoader = new THREE.TextureLoader();
-function loadTex(url){
-  const t = texLoader.load(url);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-/* ==================== 材质 ==================== */
-const M = {
-  teapot1: [
-    new THREE.MeshStandardMaterial({ map: loadTex('./teapot1_A.jpg'), roughness: 0.5 }),
-    new THREE.MeshStandardMaterial({ map: loadTex('./teapot1_B.jpg'), roughness: 0.5 }),
-  ],
-  teapot2: [
-    new THREE.MeshStandardMaterial({ map: loadTex('./teapot2_A.jpg'), roughness: 0.5 }),
-    new THREE.MeshStandardMaterial({ map: loadTex('./teapot2_B.jpg'), roughness: 0.5 }),
-  ],
+const ContrastShader = {
+  uniforms:{ tDiffuse:{value:null}, contrast:{value:CONFIG.view.contrast}, brightness:{value:CONFIG.view.brightness} },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader: 'uniform sampler2D tDiffuse; uniform float contrast; uniform float brightness; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); c.rgb=(c.rgb-0.5)*contrast+0.5+brightness; gl_FragColor=c;}'
 };
 
-/* ==================== 状态 ==================== */
-const teapots = [null, null];
-let currentModel = 0;
-let currentMat = 0;
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const gtaoPass = new GTAOPass(scene, camera, innerWidth, innerHeight);
+gtaoPass.output = GTAOPass.OUTPUT.Default;
+updateGTAO();
+composer.addPass(gtaoPass);
+composer.addPass(new OutputPass());
+const contrastPass = new ShaderPass(ContrastShader);
+composer.addPass(contrastPass);
 
-function applyMaterialTo(target, mat){
-  if(!target) return;
-  target.traverse(o => { if(o.isMesh) o.material = mat; });
+function updateGTAO() {
+  const C = CONFIG.contactShadow;
+  gtaoPass.enabled = C.enabled;
+  gtaoPass.updateGtaoMaterial({ radius:C.radius, distanceExponent:C.distanceExponent, thickness:C.thickness, scale:C.scale, samples:C.samples, distanceFallOff:C.distanceFallOff, screenSpaceRadius:C.screenSpaceRadius });
 }
 
-function refresh(){
-  teapots.forEach((t,i) => { if(t) t.visible = (i === currentModel); });
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.enablePan = true;
 
-  const mat = M['teapot' + (currentModel + 1)][currentMat];
-  applyMaterialTo(teapots[currentModel], mat);
+const pmrem = new THREE.PMREMGenerator(renderer);
+pmrem.compileEquirectangularShader();
+let currentEnvTexture = null;
+const defaultEnvTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environment = defaultEnvTexture;
+scene.environmentIntensity = CONFIG.envIntensity;
+const hdrState = { path:'./backlight.hdr', showBg:false };
 
-  document.querySelectorAll('.model-card').forEach((b,i) => {
-    b.classList.toggle('active', i === currentModel);
-  });
-  document.querySelectorAll('.mat-card').forEach((b,i) => {
-    b.classList.toggle('active', i === currentMat);
-  });
+function tryLoadHDRIFromCandidates() {
+  let i = 0;
+  function next() {
+    if (i >= HDR_CANDIDATES.length) { infoEl.textContent = '⚠ 未找到 HDRI'; infoEl.className = 'err'; return; }
+    const path = HDR_CANDIDATES[i++];
+    new RGBELoader().load(path,
+      (hdr) => {
+        if (currentEnvTexture) currentEnvTexture.dispose();
+        currentEnvTexture = pmrem.fromEquirectangular(hdr).texture;
+        scene.environment = currentEnvTexture;
+        scene.environmentIntensity = CONFIG.envIntensity;
+        if (hdrState.showBg) scene.background = currentEnvTexture;
+        hdr.dispose();
+        hdrState.path = path;
+        infoEl.textContent = `✓ HDRI：${path}`;
+        infoEl.className = 'ok';
+        if (gui) gui.controllersRecursive().forEach(c => c.updateDisplay());
+      },
+      undefined, () => next()
+    );
+  }
+  next();
 }
 
-function loadTeapot(url, index, scaleFactor = 1){
-  new OBJLoader().load(url, (obj) => {
+const L = CONFIG.lights;
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd8c8b0, L.hemi); scene.add(hemiLight);
+const ambientLight = new THREE.AmbientLight(0xffffff, L.ambient); scene.add(ambientLight);
 
-    obj.rotation.x = -Math.PI / 2;
+const keyLight = new THREE.DirectionalLight(0xfff5e8, L.key);
+keyLight.position.set(CONFIG.keyPos.x, CONFIG.keyPos.y, CONFIG.keyPos.z);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 0.1; keyLight.shadow.camera.far = 50;
+keyLight.shadow.bias = -0.0005; keyLight.shadow.radius = 6;
+scene.add(keyLight); scene.add(keyLight.target);
 
-    const box0 = new THREE.Box3().setFromObject(obj);
-    const size0 = box0.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size0.x, size0.y, size0.z);
-    obj.scale.setScalar((2 / maxDim) * scaleFactor);
+const fillLight = new THREE.DirectionalLight(0xffffff, L.fill);
+fillLight.position.set(CONFIG.fillPos.x, CONFIG.fillPos.y, CONFIG.fillPos.z);
+scene.add(fillLight); scene.add(fillLight.target);
 
-    const box1 = new THREE.Box3().setFromObject(obj);
-    const c = box1.getCenter(new THREE.Vector3());
-    obj.position.x -= c.x;
-    obj.position.z -= c.z;
-    obj.position.y -= box1.min.y;
+const rimLight = new THREE.DirectionalLight(0xffffff, L.rim);
+rimLight.position.set(CONFIG.rimPos.x, CONFIG.rimPos.y, CONFIG.rimPos.z);
+scene.add(rimLight); scene.add(rimLight.target);
 
-    scene.add(obj);
-    teapots[index] = obj;
-    refresh();
-  }, undefined, err => console.error(url, '加载失败', err));
-}
-
-loadTeapot('./teapot1.obj', 0);
-loadTeapot('./teapot2.obj', 1, 0.66);
-
-/* ==================== 按钮 ==================== */
-document.querySelectorAll('.model-card').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentModel = Number(btn.dataset.model);
-    refresh();
-  });
-});
-document.querySelectorAll('.mat-card').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentMat = Number(btn.dataset.mat);
-    refresh();
-  });
-});
-
-/* ==================== 渲染循环 ==================== */
-function animate(){
-  requestAnimationFrame(animate);
+let roomSize = null;
+function applyCamera() {
+  const C = CONFIG.camera;
+  const radA = (C.angle * Math.PI) / 180;
+  const radE = (C.elevation * Math.PI) / 180;
+  const horiz = Math.cos(radE) * C.distance;
+  const vert = Math.sin(radE) * C.distance;
+  let df = 1;
+  if (currentLayout === 'layout-mobile-portrait') df = 1.6;
+  else if (currentLayout === 'layout-mobile-landscape') df = 1.3;
+  camera.position.set(C.targetX + Math.sin(radA) * horiz * df, C.targetH + vert * df, C.targetZ + Math.cos(radA) * horiz * df);
+  camera.fov = C.fov;
+  camera.updateProjectionMatrix();
+  controls.target.set(C.targetX, C.targetH, C.targetZ);
   controls.update();
-  renderer.render(scene, camera);
 }
+
+const boostedMaterials = [];
+function boostMaterial(mat) {
+  if (!mat) return mat;
+  if (mat.isMeshStandardMaterial && !mat.isMeshPhysicalMaterial) {
+    const p = new THREE.MeshPhysicalMaterial({
+      map: mat.map, color: mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
+      roughness: mat.roughness !== undefined ? mat.roughness : 0.5,
+      metalness: mat.metalness !== undefined ? mat.metalness : 0,
+      normalMap: mat.normalMap, aoMap: mat.aoMap,
+      transparent: mat.transparent, opacity: mat.opacity, side: mat.side,
+      envMapIntensity: CONFIG.materialBoost.envMapIntensity,
+      clearcoat: CONFIG.materialBoost.addClearcoat ? CONFIG.materialBoost.clearcoat : 0,
+      clearcoatRoughness: CONFIG.materialBoost.clearcoatRoughness
+    });
+    boostedMaterials.push(p);
+    return p;
+  }
+  if (mat.isMeshPhysicalMaterial) {
+    mat.envMapIntensity = CONFIG.materialBoost.envMapIntensity;
+    mat.needsUpdate = true;
+    boostedMaterials.push(mat);
+  }
+  return mat;
+}
+function applyMaterialBoost(root) {
+  (root || scene).traverse(o => {
+    if (!o.isMesh) return;
+    if (Array.isArray(o.material)) o.material = o.material.map(m => boostMaterial(m));
+    else o.material = boostMaterial(o.material);
+  });
+}
+
+/* ============ 支撑面 ============ */
+const SUPPORTS = [];
+
+function scanSupports(root) {
+  root.updateMatrixWorld(true);
+  SUPPORTS.length = 0;
+  root.traverse((o) => {
+    if (!o.name) return;
+    const name = o.name.toLowerCase();
+    let kind = null;
+    if (name.includes('zhuo') || name.includes('table')) kind = 'table';
+    else if (name.includes('chaxi')) kind = 'mat';
+    if (!kind) return;
+    const box = new THREE.Box3().setFromObject(o);
+    if (box.isEmpty()) return;
+    SUPPORTS.push({
+      name: o.name, node: o,
+      minX: box.min.x, maxX: box.max.x,
+      minZ: box.min.z, maxZ: box.max.z,
+      topY: box.max.y, isMat: kind === 'mat'
+    });
+  });
+  SUPPORTS.sort((a, b) => a.topY - b.topY);
+  console.log('============ 支撑面 ============');
+  SUPPORTS.forEach(s => {
+    const cx = (s.minX + s.maxX) / 2;
+    const cz = (s.minZ + s.maxZ) / 2;
+    console.log(`  ${s.name}: topY=${s.topY.toFixed(3)} 中心=(${cx.toFixed(3)},${cz.toFixed(3)}) 范围=(${(s.maxX-s.minX).toFixed(2)}×${(s.maxZ-s.minZ).toFixed(2)})`);
+  });
+}
+
+function getSupportAt(x, z) {
+  let best = null;
+  for (const s of SUPPORTS) {
+    if (x >= s.minX && x <= s.maxX && z >= s.minZ && z <= s.maxZ) {
+      if (!best || s.topY > best.topY) best = s;
+    }
+  }
+  return best;
+}
+function getGroundY(x, z) {
+  const s = getSupportAt(x, z);
+  return s ? s.topY : 0;
+}
+function getTableSupport() {
+  let s = SUPPORTS.find(s => s.name.toLowerCase().includes('zhuo'));
+  if (!s) s = SUPPORTS.find(s => !s.isMat);
+  return s || null;
+}
+
+/* ============ 茶具加载 ============ */
+const TEAPOT_TEMPLATES = {};
+
+function loadTeapotTemplates() {
+  Object.keys(TEAPOT_DEFS).forEach(key => {
+    const def = TEAPOT_DEFS[key];
+    new GLTFLoader().load(def.file,
+      (gltf) => {
+        const raw = gltf.scene;
+        let box = new THREE.Box3().setFromObject(raw);
+        const size0 = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size0.x, size0.y, size0.z);
+        let scale = 1;
+        if (maxDim > 100) scale = 0.001;
+        if (maxDim < 0.01) scale = 100;
+        raw.scale.setScalar(scale);
+        raw.updateMatrixWorld(true);
+
+        box = new THREE.Box3().setFromObject(raw);
+        const size1 = box.getSize(new THREE.Vector3());
+        const center1 = box.getCenter(new THREE.Vector3());
+
+        const wrapper = new THREE.Group();
+        raw.position.x -= center1.x;
+        raw.position.z -= center1.z;
+        raw.position.y -= box.min.y;
+        wrapper.add(raw);
+        wrapper.updateMatrixWorld(true);
+
+        box = new THREE.Box3().setFromObject(wrapper);
+        const size2 = box.getSize(new THREE.Vector3());
+        const hRadius = Math.max(size2.x, size2.z) / 2;
+        const radius = hRadius * def.radiusScale * CONFIG.interaction.globalRadiusScale;
+
+        wrapper.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+
+        TEAPOT_TEMPLATES[key] = { scene: wrapper, radius, height: size2.y, ready: true };
+        console.log(`✓ 茶具: ${key}  尺寸(${size2.x.toFixed(3)},${size2.y.toFixed(3)},${size2.z.toFixed(3)})  半径=${radius.toFixed(3)}`);
+      },
+      undefined,
+      (err) => {
+        console.error(`✗ 茶具失败: ${key}`, err);
+        const ph = createPlaceholder(def.fallbackColor);
+        const box = new THREE.Box3().setFromObject(ph);
+        const s2 = box.getSize(new THREE.Vector3());
+        TEAPOT_TEMPLATES[key] = {
+          scene: ph, radius: Math.max(s2.x,s2.z)/2 * def.radiusScale,
+          height: s2.y, ready: true, isPlaceholder: true
+        };
+      }
+    );
+  });
+}
+
+function createPlaceholder(color) {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.055, 32),
+    new THREE.MeshPhysicalMaterial({ color, roughness:0.15, metalness:0, clearcoat:1.0, clearcoatRoughness:0.05, envMapIntensity:1.2, side:THREE.DoubleSide }));
+  b.position.y = 0.0275; b.castShadow = true; b.receiveShadow = true; g.add(b);
+  const i = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.025, 0.052, 24, 1, true),
+    new THREE.MeshPhysicalMaterial({ color, roughness:0.3, metalness:0, side:THREE.BackSide }));
+  i.position.y = 0.028; g.add(i);
+  return g;
+}
+
+/* ============ 目录 UI ============ */
+const catalogState = { path: [] };
+const catalogEl = document.getElementById('catalog');
+const catalogBody = document.getElementById('catalogBody');
+const breadcrumbEl = document.getElementById('breadcrumb');
+const backBtn = document.getElementById('backBtn');
+const drawerHandle = document.getElementById('drawerHandle');
+
+drawerHandle.addEventListener('click', (e) => {
+  if (currentLayout !== 'layout-mobile-portrait') return;
+  e.stopPropagation();
+  catalogEl.classList.toggle('open');
+});
+
+function getCurrentItems() {
+  let n = { children: CATALOG };
+  for (const i of catalogState.path) if (n.children && n.children[i]) n = n.children[i];
+  return n.children || [];
+}
+function countLeaves(node) {
+  if (!node.children || node.children.length === 0) return 1;
+  let n = 0;
+  for (const c of node.children) n += countLeaves(c);
+  return n;
+}
+function renderBreadcrumb() {
+  const parts = [{ name:'茶席器具', path:[] }];
+  let n = { children: CATALOG };
+  const cur = [];
+  for (const i of catalogState.path) {
+    if (n.children && n.children[i]) {
+      n = n.children[i]; cur.push(i);
+      parts.push({ name:n.name, path:[...cur] });
+    }
+  }
+  breadcrumbEl.innerHTML = '';
+  parts.forEach((p, i) => {
+    if (i > 0) {
+      const s = document.createElement('span');
+      s.className = 'bc-sep'; s.textContent = '/';
+      breadcrumbEl.appendChild(s);
+    }
+    const el = document.createElement('span');
+    el.className = 'bc-item' + (i === parts.length-1 ? ' current' : '');
+    el.textContent = p.name;
+    if (i < parts.length-1) el.addEventListener('click', () => { catalogState.path = p.path; renderCatalog(); });
+    breadcrumbEl.appendChild(el);
+  });
+  backBtn.classList.toggle('show', catalogState.path.length > 0);
+}
+function renderCatalog() {
+  renderBreadcrumb();
+  const items = getCurrentItems();
+  catalogBody.innerHTML = '';
+  if (items.length === 0) {
+    const e = document.createElement('div');
+    e.style.cssText = 'text-align:center;padding:40px 20px;color:#6b6259;font-size:12px';
+    e.textContent = '（空）';
+    catalogBody.appendChild(e);
+    return;
+  }
+  items.forEach((item, idx) => {
+    const isLeaf = !item.children || item.children.length === 0;
+    const hasModel = !!(item.model);
+    const el = document.createElement('div');
+    el.className = 'item';
+    if (hasModel) {
+      const dot = document.createElement('span');
+      dot.className = 'item-dot';
+      el.appendChild(dot);
+    }
+    const icon = document.createElement('div');
+    icon.className = 'item-icon' + (isLeaf ? ' leaf' : '') + (hasModel ? ' has-model' : '');
+    icon.textContent = isLeaf ? '◈' : '▸';
+    el.appendChild(icon);
+
+    const text = document.createElement('div');
+    text.className = 'item-text';
+    const nm = document.createElement('div');
+    nm.className = 'item-name';
+    nm.textContent = item.name;
+    text.appendChild(nm);
+    const cnt = document.createElement('div');
+    cnt.className = 'item-count';
+    cnt.textContent = isLeaf ? (hasModel ? '✓ 有模型' : '占位') : `${countLeaves(item)} 项`;
+    text.appendChild(cnt);
+    el.appendChild(text);
+
+    const ar = document.createElement('div');
+    ar.className = isLeaf ? 'item-plus' : 'item-arrow';
+    ar.textContent = isLeaf ? '+' : '›';
+    el.appendChild(ar);
+
+    el.addEventListener('click', () => {
+      if (isLeaf) addItemToDesk(item);
+      else { catalogState.path.push(idx); renderCatalog(); }
+    });
+    catalogBody.appendChild(el);
+  });
+}
+backBtn.addEventListener('click', () => { catalogState.path.pop(); renderCatalog(); });
+
+/* ============ 添加物品 ============ */
+const placedItems = [];
+let selectedInstance = null;
+let selectionRing = null;
+
+function addItemToDesk(item) {
+  let sourceGroup, radius;
+  if (item.model && TEAPOT_TEMPLATES[item.model]) {
+    const tpl = TEAPOT_TEMPLATES[item.model];
+    sourceGroup = tpl.scene;
+    radius = tpl.radius;
+  } else {
+    sourceGroup = createPlaceholder(item.color || 0xcccccc);
+    const box = new THREE.Box3().setFromObject(sourceGroup);
+    const s2 = box.getSize(new THREE.Vector3());
+    radius = Math.max(s2.x, s2.z) / 2 * 0.6 * CONFIG.interaction.globalRadiusScale;
+  }
+
+  const clone = sourceGroup.clone(true);
+  clone.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true; o.receiveShadow = true;
+      if (Array.isArray(o.material)) o.material = o.material.map(m => m.clone());
+      else o.material = o.material.clone();
+    }
+  });
+
+  const pos = findFreeSpot(radius);
+  const groundY = getGroundY(pos.x, pos.z);
+  const support = getSupportAt(pos.x, pos.z);
+
+  clone.position.set(pos.x, groundY, pos.z);
+  scene.add(clone);
+
+  const inst = { object: clone, radius, baseScale: 1, type: item.model || 'placeholder', name: item.name };
+  placedItems.push(inst);
+  selectItem(inst);
+
+  console.log(`[添加] ${item.name} 位置=(${pos.x.toFixed(3)},${groundY.toFixed(3)},${pos.z.toFixed(3)}) 支撑面=${support ? support.name : '地面'}`);
+  showToast(`已添加：${item.name}`);
+}
+
+/* ★ 矩形范围搜索（覆盖整张桌子） */
+function findFreeSpot(radius) {
+  const ref = getTableSupport();
+  if (!ref) return { x: 0, z: 0 };
+
+  const cx = (ref.minX + ref.maxX) / 2;
+  const cz = (ref.minZ + ref.maxZ) / 2;
+  const margin = CONFIG.interaction.tableMargin;
+  const minX = ref.minX + margin + radius;
+  const maxX = ref.maxX - margin - radius;
+  const minZ = ref.minZ + margin + radius;
+  const maxZ = ref.maxZ - margin - radius;
+
+  /* 中心能放就放中心 */
+  if (cx >= minX && cx <= maxX && cz >= minZ && cz <= maxZ && isFree(cx, cz, radius, null)) {
+    return { x: cx, z: cz };
+  }
+
+  /* 螺旋搜索，但用矩形边界判断 */
+  const step = radius * 0.7;
+  const maxR = Math.max(maxX - cx, cx - minX, maxZ - cz, cz - minZ);
+  for (let ring = 1; ring < 50; ring++) {
+    const r = ring * step;
+    if (r > maxR) break;
+    const n = Math.max(6, Math.floor(r * 6));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const x = cx + Math.cos(a) * r;
+      const z = cz + Math.sin(a) * r;
+      if (x < minX || x > maxX) continue;
+      if (z < minZ || z > maxZ) continue;
+      if (isFree(x, z, radius, null)) return { x, z };
+    }
+  }
+  return { x: cx, z: cz };
+}
+
+function isFree(x, z, radius, ignore) {
+  for (const it of placedItems) {
+    if (it === ignore) continue;
+    const dx = x - it.object.position.x;
+    const dz = z - it.object.position.z;
+    const d = radius + it.radius;
+    if (dx*dx + dz*dz < d*d) return false;
+  }
+  return true;
+}
+
+function selectItem(inst) { selectedInstance = inst; updateSelectionRing(); }
+function updateSelectionRing() {
+  if (!selectionRing) {
+    const g = new THREE.RingGeometry(1, 1.05, 48);
+    g.rotateX(-Math.PI / 2);
+    selectionRing = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color:0xb8935a, transparent:true, opacity:0.8, side:THREE.DoubleSide, depthTest:false }));
+    selectionRing.renderOrder = 999;
+    scene.add(selectionRing);
+  }
+  if (!selectedInstance) { selectionRing.visible = false; return; }
+  selectionRing.visible = true;
+  const r = selectedInstance.radius;
+  selectionRing.scale.set(r, r, r);
+  selectionRing.position.set(
+    selectedInstance.object.position.x,
+    selectedInstance.object.position.y + 0.002,
+    selectedInstance.object.position.z
+  );
+}
+function rotateSelected(dir) {
+  if (!selectedInstance) return;
+  selectedInstance.object.rotation.y += dir * CONFIG.interaction.rotateStep;
+  commitHistory();
+}
+function scaleSelected(factor) {
+  if (!selectedInstance) return;
+  const def = TEAPOT_DEFS[selectedInstance.type];
+  const min = def ? def.scaleMin : 0.5;
+  const max = def ? def.scaleMax : 2.0;
+  const ns = Math.max(min, Math.min(max, selectedInstance.baseScale * factor));
+  selectedInstance.baseScale = ns;
+  selectedInstance.object.scale.setScalar(ns);
+  const tpl = TEAPOT_TEMPLATES[selectedInstance.type];
+  if (tpl) selectedInstance.radius = tpl.radius * ns;
+  updateSelectionRing();
+  commitHistory();
+}
+function deleteSelected() {
+  if (!selectedInstance) return;
+  const i = placedItems.indexOf(selectedInstance);
+  if (i >= 0) placedItems.splice(i, 1);
+  scene.remove(selectedInstance.object);
+  selectedInstance = null;
+  updateSelectionRing();
+  commitHistory();
+  showToast('已删除');
+}
+
+/* ============ 拖拽（矩形范围） ============ */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const dragOffset = new THREE.Vector3();
+const dragHit = new THREE.Vector3();
+let dragging = null;
+
+function updatePointer(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+function pickInstance() {
+  raycaster.setFromCamera(pointer, camera);
+  const ms = [];
+  placedItems.forEach(it => it.object.traverse(c => { if (c.isMesh) ms.push(c); }));
+  const hits = raycaster.intersectObjects(ms);
+  if (!hits.length) return null;
+  const hm = hits[0].object;
+  for (const it of placedItems) {
+    let f = false;
+    it.object.traverse(c => { if (c === hm) f = true; });
+    if (f) return it;
+  }
+  return null;
+}
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  updatePointer(e);
+  const hit = pickInstance();
+  if (hit) {
+    selectItem(hit);
+    dragging = hit;
+    dragPlane.set(new THREE.Vector3(0,1,0), -hit.object.position.y);
+    raycaster.setFromCamera(pointer, camera);
+    raycaster.ray.intersectPlane(dragPlane, dragHit);
+    dragOffset.copy(hit.object.position).sub(dragHit);
+    controls.enabled = false;
+    renderer.domElement.setPointerCapture(e.pointerId);
+  } else selectItem(null);
+});
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  updatePointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  if (!raycaster.ray.intersectPlane(dragPlane, dragHit)) return;
+
+  const np = dragHit.clone().add(dragOffset);
+  const ref = getTableSupport();
+  if (ref) {
+    /* ★ 矩形范围限制：X 和 Z 分别限制，留出 margin 边距，再留出自身半径 */
+    const margin = CONFIG.interaction.tableMargin;
+    const r = dragging.radius;
+    if (np.x < ref.minX + margin + r) np.x = ref.minX + margin + r;
+    if (np.x > ref.maxX - margin - r) np.x = ref.maxX - margin - r;
+    if (np.z < ref.minZ + margin + r) np.z = ref.minZ + margin + r;
+    if (np.z > ref.maxZ - margin - r) np.z = ref.maxZ - margin - r;
+  }
+
+  if (isFree(np.x, np.z, dragging.radius, dragging)) {
+    dragging.object.position.x = np.x;
+    dragging.object.position.z = np.z;
+    dragging.object.position.y = getGroundY(np.x, np.z);
+    updateSelectionRing();
+  }
+});
+function endDrag() { if (dragging) { dragging = null; controls.enabled = true; commitHistory(); } }
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ============ 历史记录 ============ */
+const history = { undo:[], redo:[], maxSize:30 };
+let lastCommittedSnapshot = null;
+function takeSnapshot() {
+  return {
+    camera: { ...CONFIG.camera }, envIntensity: CONFIG.envIntensity, exposure: CONFIG.exposure,
+    lights: { ...CONFIG.lights }, keyPos: { ...CONFIG.keyPos }, fillPos: { ...CONFIG.fillPos }, rimPos: { ...CONFIG.rimPos },
+    contactShadow: { ...CONFIG.contactShadow }, materialBoost: { ...CONFIG.materialBoost }, view: { ...CONFIG.view },
+    placedItems: placedItems.map(it => ({ type:it.type, name:it.name, pos:it.object.position.toArray(), rot:it.object.rotation.y, scale:it.baseScale }))
+  };
+}
+function commitHistory() {
+  if (!lastCommittedSnapshot) return;
+  history.undo.push(lastCommittedSnapshot);
+  if (history.undo.length > history.maxSize) history.undo.shift();
+  history.redo.length = 0;
+  lastCommittedSnapshot = takeSnapshot();
+  updateHistoryUI();
+}
+function applySnapshot(snap) {
+  Object.assign(CONFIG.camera, snap.camera);
+  CONFIG.envIntensity = snap.envIntensity; CONFIG.exposure = snap.exposure;
+  Object.assign(CONFIG.lights, snap.lights);
+  Object.assign(CONFIG.keyPos, snap.keyPos); Object.assign(CONFIG.fillPos, snap.fillPos); Object.assign(CONFIG.rimPos, snap.rimPos);
+  if (snap.contactShadow) Object.assign(CONFIG.contactShadow, snap.contactShadow);
+  if (snap.materialBoost) Object.assign(CONFIG.materialBoost, snap.materialBoost);
+  if (snap.view) Object.assign(CONFIG.view, snap.view);
+  scene.environmentIntensity = CONFIG.envIntensity;
+  renderer.toneMappingExposure = CONFIG.exposure;
+  hemiLight.intensity = CONFIG.lights.hemi; ambientLight.intensity = CONFIG.lights.ambient;
+  keyLight.intensity = CONFIG.lights.key; fillLight.intensity = CONFIG.lights.fill; rimLight.intensity = CONFIG.lights.rim;
+  keyLight.position.set(CONFIG.keyPos.x, CONFIG.keyPos.y, CONFIG.keyPos.z);
+  fillLight.position.set(CONFIG.fillPos.x, CONFIG.fillPos.y, CONFIG.fillPos.z);
+  rimLight.position.set(CONFIG.rimPos.x, CONFIG.rimPos.y, CONFIG.rimPos.z);
+  contrastPass.uniforms.contrast.value = CONFIG.view.contrast;
+  contrastPass.uniforms.brightness.value = CONFIG.view.brightness;
+  placedItems.forEach(it => scene.remove(it.object));
+  placedItems.length = 0; selectedInstance = null;
+  updateSelectionRing();
+  if (snap.placedItems) {
+    snap.placedItems.forEach(it => {
+      addItemToDesk({ name: it.name, model: it.type !== 'placeholder' ? it.type : null, color: 0xcccccc });
+      const inst = placedItems[placedItems.length-1];
+      inst.object.position.fromArray(it.pos);
+      inst.object.rotation.y = it.rot;
+      inst.baseScale = it.scale;
+      inst.object.scale.setScalar(it.scale);
+      const tpl = TEAPOT_TEMPLATES[inst.type];
+      if (tpl) inst.radius = tpl.radius * it.scale;
+    });
+    selectedInstance = null;
+    updateSelectionRing();
+  }
+  updateGTAO(); applyCamera();
+  if (gui) gui.controllersRecursive().forEach(c => c.updateDisplay());
+  updateHistoryUI();
+}
+function undo() {
+  if (history.undo.length === 0) { showToast('没有可撤销的步骤'); return; }
+  const c = takeSnapshot(); const s = history.undo.pop();
+  history.redo.push(c); applySnapshot(s);
+  lastCommittedSnapshot = takeSnapshot();
+  showToast(`撤销 · 剩余 ${history.undo.length} 步`);
+}
+function redo() {
+  if (history.redo.length === 0) { showToast('没有可重做的步骤'); return; }
+  const c = takeSnapshot(); const s = history.redo.pop();
+  history.undo.push(c); applySnapshot(s);
+  lastCommittedSnapshot = takeSnapshot();
+  showToast(`重做 · 剩余 ${history.redo.length} 步`);
+}
+function updateHistoryUI() {
+  document.getElementById('undoCount').textContent = history.undo.length;
+  document.getElementById('redoCount').textContent = history.redo.length;
+  document.getElementById('undoBtn').disabled = history.undo.length === 0;
+  document.getElementById('redoBtn').disabled = history.redo.length === 0;
+}
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('redoBtn').addEventListener('click', redo);
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (e.shiftKey) redo(); else undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); }
+  if (selectedInstance) {
+    if (e.key === 'q' || e.key === 'Q') rotateSelected(+1);
+    if (e.key === 'e' || e.key === 'E') rotateSelected(-1);
+    if (e.key === '[') scaleSelected(1 - CONFIG.interaction.scaleStep);
+    if (e.key === ']') scaleSelected(1 + CONFIG.interaction.scaleStep);
+    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+  }
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (placedItems.length === 0) { showToast('桌面已经是空的'); return; }
+  placedItems.forEach(g => scene.remove(g));
+  placedItems.length = 0; selectedInstance = null;
+  updateSelectionRing();
+  showToast('已清空');
+  commitHistory();
+});
+
+let toastTimer = null;
+function showToast(t) {
+  const el = document.getElementById('toast');
+  el.textContent = t; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+/* ============ 加载 chashi.glb ============ */
+const infoEl = document.getElementById('info');
+
+new GLTFLoader().load('./chashi.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    let box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    let scale = 1;
+    if (maxDim > 100) scale = 0.001;
+    model.scale.setScalar(scale);
+    model.updateMatrixWorld(true);
+
+    box = new THREE.Box3().setFromObject(model);
+    const size2 = box.getSize(new THREE.Vector3());
+    const center2 = box.getCenter(new THREE.Vector3());
+    roomSize = { x:size2.x, y:size2.y, z:size2.z };
+
+    console.log('茶室尺寸:', size2.x.toFixed(2), size2.y.toFixed(2), size2.z.toFixed(2));
+
+    scene.add(model);
+    model.updateMatrixWorld(true);
+    scanSupports(model);
+
+    const tableSup = getTableSupport();
+    if (tableSup) {
+      const cx = (tableSup.minX + tableSup.maxX) / 2;
+      const cz = (tableSup.minZ + tableSup.maxZ) / 2;
+      const w = Math.max(tableSup.maxX - tableSup.minX, tableSup.maxZ - tableSup.minZ);
+      CONFIG.camera.targetX = cx;
+      CONFIG.camera.targetZ = cz;
+      CONFIG.camera.targetH = tableSup.topY + 0.15;
+      CONFIG.camera.distance = w * 1.8;
+    } else {
+      CONFIG.camera.targetH = size2.y * 0.3;
+      CONFIG.camera.distance = Math.max(size2.x, size2.z) * 0.7;
+    }
+
+    const w = Math.max(size2.x, size2.z);
+    CONFIG.contactShadow.radius = w * 0.015;
+    CONFIG.contactShadow.thickness = size2.y * 0.05;
+    updateGTAO();
+    applyCamera();
+
+    controls.minDistance = 0.3;
+    controls.maxDistance = w * 5;
+
+    keyLight.shadow.camera.left = -w; keyLight.shadow.camera.right = w;
+    keyLight.shadow.camera.top = w; keyLight.shadow.camera.bottom = -w;
+    keyLight.shadow.camera.updateProjectionMatrix();
+
+    model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+
+    if (CONFIG.materialBoost.enabled) applyMaterialBoost(model);
+    tryLoadHDRIFromCandidates();
+    loadTeapotTemplates();
+
+    setTimeout(() => { lastCommittedSnapshot = takeSnapshot(); updateHistoryUI(); }, 100);
+
+    infoEl.textContent = `✓ 茶室 · ${size2.x.toFixed(1)}×${size2.y.toFixed(1)}×${size2.z.toFixed(1)}`;
+    infoEl.className = 'ok';
+  },
+  undefined,
+  (err) => {
+    console.error('✗ chashi.glb 加载失败:', err);
+    infoEl.textContent = '✗ 茶室加载失败';
+    infoEl.className = 'err';
+  }
+);
+
+/* GUI */
+const gui = new GUI({ title:'场景调节' });
+function addSlider(folder, obj, key, min, max, step, name, onChange) {
+  const c = folder.add(obj, key, min, max, step).name(name);
+  if (onChange) c.onChange(onChange);
+  c.onFinishChange(commitHistory);
+  return c;
+}
+const selActions = {
+  rotateL: () => rotateSelected(+1), rotateR: () => rotateSelected(-1),
+  scaleUp: () => scaleSelected(1 + CONFIG.interaction.scaleStep),
+  scaleDown: () => scaleSelected(1 - CONFIG.interaction.scaleStep),
+  deleteSelected: () => deleteSelected()
+};
+const fSel = gui.addFolder('选中物品');
+fSel.add(selActions, 'rotateL').name('⟲ 逆时针 15°');
+fSel.add(selActions, 'rotateR').name('⟳ 顺时针 15°');
+fSel.add(selActions, 'scaleUp').name('＋ 放大 10%');
+fSel.add(selActions, 'scaleDown').name('－ 缩小 10%');
+fSel.add(selActions, 'deleteSelected').name('🗑 删除');
+addSlider(fSel, CONFIG.interaction, 'globalRadiusScale', 0.4, 1.5, 0.05, '碰撞系数(全局)', () => {
+  placedItems.forEach(it => {
+    const tpl = TEAPOT_TEMPLATES[it.type];
+    const def = TEAPOT_DEFS[it.type];
+    if (tpl && def) it.radius = tpl.radius / def.radiusScale * CONFIG.interaction.globalRadiusScale * it.baseScale;
+  });
+  updateSelectionRing();
+});
+
+const fCam = gui.addFolder('相机');
+addSlider(fCam, CONFIG.camera, 'targetX', -10, 10, 0.05, '位置 X', applyCamera);
+addSlider(fCam, CONFIG.camera, 'targetZ', -10, 10, 0.05, '位置 Z', applyCamera);
+addSlider(fCam, CONFIG.camera, 'targetH', 0, 5, 0.05, '高度', applyCamera);
+addSlider(fCam, CONFIG.camera, 'angle', -180, 180, 1, '水平角度 °', applyCamera);
+addSlider(fCam, CONFIG.camera, 'elevation', -10, 89, 1, '仰角 °', applyCamera);
+addSlider(fCam, CONFIG.camera, 'distance', 0.3, 20, 0.05, '距离', applyCamera);
+addSlider(fCam, CONFIG.camera, 'fov', 20, 90, 1, '视野角 °', applyCamera);
+const presetActions = {
+  '近看桌面': () => { CONFIG.camera.distance = 1.5; CONFIG.camera.elevation = 25; CONFIG.camera.fov = 40; },
+  '中景': () => { CONFIG.camera.distance = 2.0; CONFIG.camera.elevation = 20; CONFIG.camera.fov = 45; },
+  '全景': () => { if (roomSize) CONFIG.camera.distance = Math.max(roomSize.x, roomSize.z) * 1.2; CONFIG.camera.elevation = 30; CONFIG.camera.fov = 50; }
+};
+const presetObj = {};
+for (const n in presetActions) presetObj[n] = () => {
+  presetActions[n](); applyCamera(); commitHistory();
+  gui.controllersRecursive().forEach(c => c.updateDisplay());
+};
+fCam.add(presetObj, '近看桌面').name('▸ 近看桌面');
+fCam.add(presetObj, '中景').name('▸ 中景');
+fCam.add(presetObj, '全景').name('▸ 全景');
+
+const fView = gui.addFolder('画面调节');
+addSlider(fView, CONFIG.view, 'contrast', 0.5, 2.0, 0.01, '对比度', v => contrastPass.uniforms.contrast.value = v);
+addSlider(fView, CONFIG.view, 'brightness', -0.3, 0.3, 0.01, '亮度', v => contrastPass.uniforms.brightness.value = v);
+
+const fEnv = gui.addFolder('环境');
+addSlider(fEnv, CONFIG, 'envIntensity', 0, 3, 0.01, '环境强度', v => scene.environmentIntensity = v);
+addSlider(fEnv, CONFIG, 'exposure', 0.3, 2.5, 0.01, '曝光', v => renderer.toneMappingExposure = v);
+
+const fLight = gui.addFolder('灯光强度');
+addSlider(fLight, L, 'hemi', 0, 5, 0.01, '天光', v => hemiLight.intensity = v);
+addSlider(fLight, L, 'ambient', 0, 3, 0.01, '环境光', v => ambientLight.intensity = v);
+addSlider(fLight, L, 'key', 0, 15, 0.01, '主光', v => keyLight.intensity = v);
+addSlider(fLight, L, 'fill', 0, 8, 0.01, '补光', v => fillLight.intensity = v);
+addSlider(fLight, L, 'rim', 0, 6, 0.01, '背光', v => rimLight.intensity = v);
+
+const fCS = gui.addFolder('接触阴影');
+fCS.add(CONFIG.contactShadow, 'enabled').name('开启').onChange(() => { updateGTAO(); commitHistory(); });
+addSlider(fCS, CONFIG.contactShadow, 'radius', 0.005, 1, 0.005, '采样半径', updateGTAO);
+addSlider(fCS, CONFIG.contactShadow, 'thickness', 0.01, 3, 0.01, '遮挡厚度', updateGTAO);
+addSlider(fCS, CONFIG.contactShadow, 'scale', 0, 3, 0.01, '强度', updateGTAO);
+addSlider(fCS, CONFIG.contactShadow, 'samples', 4, 32, 1, '采样数', updateGTAO);
+
+const guiEl = gui.domElement;
+guiEl.classList.add('root');
+guiEl.style.transform = 'translateX(100%)';
+let guiOpen = false;
+const guiToggle = document.getElementById('guiToggle');
+function setGuiOpen(o) {
+  guiOpen = o;
+  guiEl.style.transform = o ? 'translateX(0)' : 'translateX(100%)';
+  guiToggle.classList.toggle('open', o);
+  guiToggle.textContent = o ? '关 闭' : '调 节';
+}
+guiToggle.addEventListener('click', () => setGuiOpen(!guiOpen));
+document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') setGuiOpen(!guiOpen); });
+
+const rotateHint = document.getElementById('rotateHint');
+function updateRotateHint() {
+  if (!rotateHint) return;
+  rotateHint.classList.remove('show');
+  if (currentLayout === 'layout-mobile-portrait') {
+    setTimeout(() => {
+      rotateHint.classList.add('show');
+      setTimeout(() => rotateHint.classList.remove('show'), 4000);
+    }, 500);
+  }
+}
+
+function animate() { requestAnimationFrame(animate); controls.update(); composer.render(); }
 animate();
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth/innerHeight;
+let resizeTimer = null;
+function onResize() {
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+  gtaoPass.setSize(innerWidth, innerHeight);
+  contrastPass.setSize(innerWidth, innerHeight);
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const nl = applyLayout();
+    if (nl !== currentLayout) {
+      currentLayout = nl;
+      catalogEl.classList.remove('open');
+      applyCamera();
+      updateRotateHint();
+    }
+  }, 150);
+}
+addEventListener('resize', onResize);
+addEventListener('orientationchange', () => setTimeout(onResize, 250));
+
+document.getElementById('diagBtn').addEventListener('click', () => {
+  const tplInfo = Object.keys(TEAPOT_TEMPLATES).map(k => {
+    const t = TEAPOT_TEMPLATES[k];
+    return `${k}: radius=${t.radius?.toFixed(3)} 占位=${!!t.isPlaceholder}`;
+  }).join('\n');
+  const supInfo = SUPPORTS.map(s => {
+    const cx = (s.minX + s.maxX) / 2;
+    const cz = (s.minZ + s.maxZ) / 2;
+    return `${s.name}: topY=${s.topY.toFixed(3)} 中心=(${cx.toFixed(2)},${cz.toFixed(2)}) 范围=(${(s.maxX-s.minX).toFixed(2)}×${(s.maxZ-s.minZ).toFixed(2)})`;
+  }).join('\n');
+  alert(
+    '【茶室尺寸】\n' + (roomSize ? `${roomSize.x.toFixed(2)} × ${roomSize.y.toFixed(2)} × ${roomSize.z.toFixed(2)}` : '未加载') + '\n\n' +
+    '【支撑面】\n' + (supInfo || '无') + '\n\n' +
+    '【茶具模板】\n' + (tplInfo || '无')
+  );
 });
+
+currentLayout = applyLayout();
+renderCatalog();
+updateHistoryUI();
+updateRotateHint();
 </script>
 </body>
 </html>
